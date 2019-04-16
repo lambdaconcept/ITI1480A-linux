@@ -24,7 +24,7 @@ class Hook(HookStub):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.bind((server_address, server_port))
 
-    def push(self, endpoint, data):
+    def push(self, endpoint, address, data):
         if not endpoint == 4:
             return
 
@@ -35,7 +35,7 @@ class Hook(HookStub):
         print_data(data)
 
         self.sock.sendto(data, client_address)
-        print
+        print()
 
     def stop(self):
         self.sock.close()

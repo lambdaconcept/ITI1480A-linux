@@ -192,6 +192,7 @@ class HumanReadable(object):
         result = ''
         packet_data = None
         endpoint = None
+        address = None
         for packet in data:
             try:
                 decoded = decode(packet)
@@ -211,6 +212,7 @@ class HumanReadable(object):
             result += '\x1b[0m '
             if 'endpoint' in decoded:
                 endpoint = decoded['endpoint']
+                address = decoded['address']
                 result += '@%03i.%02i ' % (
                     decoded['address'],
                     decoded['endpoint'],
@@ -241,8 +243,8 @@ class HumanReadable(object):
         if incomplete:
             result += '\x1b[1;31m(incomplete transaction)\x1b[0m'
         if packet_data:
-            if endpoint and self.hook:
-                self.hook.push(endpoint, packet_data)
+            if self.hook:
+                self.hook.push(endpoint, address, packet_data)
             result += '\n' + hexdump(packet_data)
         return result
 
@@ -282,9 +284,9 @@ def main():
         help='Ignore SIGINT & SIGTERM so all input is read.')
     parser.add_option(
         '-k', '--hook', default=None,
-        help='Hook module. Use this for packet protocol decoding.'
-        'Use python syntax to call hook: module.hook_name(hook_optional_args)'
-        'Example: --hook \'dump.Hook("ep4.bin", [4])\'',
+        help='Hook module. Use this for packet protocol decoding. '
+        'Use python syntax to call hook: module.hook_name(hook_optional_args) '
+        """Example: --hook 'dump.Hook("dev4-ep1.bin", [(4,1)])'""",
     )
     (options, args) = parser.parse_args()
     if options.infile == '-':

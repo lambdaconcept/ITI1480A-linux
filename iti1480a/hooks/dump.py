@@ -11,13 +11,13 @@ class Hook(HookStub):
     This can be useful for analysis or reconstructing transfered files.
     """
     def __init__(self, filename, epfilter):
-        """ epfilter: should be a python list containing endpoints to dump.
+        """ epfilter: should be a python list containing (address, endpoints) to dump.
         """
         self.f = open(filename, "w")
         self.epfilter = epfilter
 
-    def push(self, endpoint, data):
-        if not endpoint in self.epfilter:
+    def push(self, endpoint, address, data):
+        if not (address, endpoint) in self.epfilter:
             return
 
         self.f.write(data)

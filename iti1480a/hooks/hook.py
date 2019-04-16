@@ -7,8 +7,8 @@
 class HookStub():
     """ All hooks should inherit from this stub class.
     """
-    def push(self, endpoint, data):
+    def push(self, endpoint, address, data):
         pass
 
-    def stop(self, endpoint, data):
+    def stop(self):
         pass
