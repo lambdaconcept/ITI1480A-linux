@@ -21,6 +21,7 @@ import errno
 import select
 import fcntl
 import os
+import importlib
 
 COLOR_GREEN = '\x1b[32m'
 COLOR_STRONG_GREEN = '\x1b[1;32m'
@@ -101,6 +102,7 @@ class HumanReadable(object):
             MESSAGE_FS_EOP: self._fs_eop if verbosity > 2 else noop,
             MESSAGE_FS_TO_CHIRP: self._fs_to_chirp,
         }
+        self.hook = None
 
     def _print(self, tic, printable, write):
         if tic is None:
@@ -189,6 +191,7 @@ class HumanReadable(object):
             return
         result = ''
         packet_data = None
+        endpoint = None
         for packet in data:
             try:
                 decoded = decode(packet)
@@ -207,6 +210,7 @@ class HumanReadable(object):
                 result += decoded['name'].ljust(7)
             result += '\x1b[0m '
             if 'endpoint' in decoded:
+                endpoint = decoded['endpoint']
                 result += '@%03i.%02i ' % (
                     decoded['address'],
                     decoded['endpoint'],
@@ -237,12 +241,16 @@ class HumanReadable(object):
         if incomplete:
             result += '\x1b[1;31m(incomplete transaction)\x1b[0m'
         if packet_data:
+            if endpoint and self.hook:
+                self.hook.push(endpoint, packet_data)
             result += '\n' + hexdump(packet_data)
         return result
 
     def stop(self):
         if self._sof_count:
             self._printSOFCount()
+        if self.hook:
+            self.hook.stop()
 
 CHUNK_SIZE = 16 * 1024
 def main():
@@ -272,6 +280,12 @@ def main():
     )
     parser.add_option('-f', '--follow', action='store_true',
         help='Ignore SIGINT & SIGTERM so all input is read.')
+    parser.add_option(
+        '-k', '--hook', default=None,
+        help='Hook module. Use this for packet protocol decoding.'
+        'Use python syntax to call hook: module.hook_name(hook_optional_args)'
+        'Example: --hook \'dump.Hook("ep4.bin", [4])\'',
+    )
     (options, args) = parser.parse_args()
     if options.infile == '-':
         infile = sys.stdin
@@ -305,6 +319,14 @@ def main():
         write,
         options.verbose - options.quiet,
     )
+    if options.hook:
+        # Import the hook module passed as argument and create the Hook object
+        # by evaluating the python string passed as argument.
+        hook_split = options.hook.split('.')
+        hook_modfilename = hook_split[0]
+        hook_modcall = ".".join(hook_split[1:])
+        hook_module = importlib.import_module('hooks.' + hook_modfilename)
+        human_readable.hook = eval('hook_module.' + hook_modcall)
     stream = ReorderedStream(
         Packetiser(
             TransactionAggregator(

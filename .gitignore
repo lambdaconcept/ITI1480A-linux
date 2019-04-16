@@ -1,2 +1,3 @@
 /build
 /ITI1480A_linux.egg-info/
+*.pyc
