@@ -10,8 +10,8 @@ import socket
 
 from hook import HookStub
 
-def print_data(data):
-    s = ""
+def print_data(prefix, data):
+    s = "{}({}): ".format(prefix, len(data))
     for d in data:
        s += "{:02x} ".format(ord(d))
     print(s)
@@ -19,26 +19,23 @@ def print_data(data):
 class Hook(HookStub):
     """ This hooks forwards all the data received on a particular endpoint via UDP.
     This can be useful for testing a protocol decoder for example.
-
-    epfilter: should be a python list containing (address, endpoints) to dump.
     """
-    def __init__(self, server_address, server_port, epfilter):
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.sock.bind((server_address, server_port))
+    def __init__(self, dest_ip, dest_port, epfilter):
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.sock.connect((dest_ip, dest_port))
         self.epfilter = epfilter
 
     def push(self, name, endpoint, address, data):
-        if not endpoint == 4:
+        if not (address, endpoint) in self.epfilter:
             return
 
-        # Wait for trigger
-        client_data, client_address = self.sock.recvfrom(1024)
+        if name == "OUT":
+            print_data("TCP OUT:", data)
+            self.sock.send(data)
 
-        print('OUT:', len(data))
-        print_data(data)
-
-        self.sock.sendto(data, client_address)
-        print()
+        elif name == "IN":
+            datarecv = self.sock.recv(1024)
+            print_data("TCP IN:", datarecv)
 
     def stop(self):
         self.sock.close()

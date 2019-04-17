@@ -193,6 +193,7 @@ class HumanReadable(object):
         packet_data = None
         endpoint = None
         address = None
+        name = None
         for packet in data:
             try:
                 decoded = decode(packet)
@@ -209,6 +210,8 @@ class HumanReadable(object):
                     else COLOR_GREEN + 'PRE'
             else:
                 result += decoded['name'].ljust(7)
+                if decoded['name'] in TOKEN_NAME.values():
+                    name = decoded['name']
             result += '\x1b[0m '
             if 'endpoint' in decoded:
                 endpoint = decoded['endpoint']
@@ -244,7 +247,7 @@ class HumanReadable(object):
             result += '\x1b[1;31m(incomplete transaction)\x1b[0m'
         if packet_data:
             if self.hook:
-                self.hook.push(endpoint, address, packet_data)
+                self.hook.push(name, endpoint, address, packet_data)
             result += '\n' + hexdump(packet_data)
         return result
 

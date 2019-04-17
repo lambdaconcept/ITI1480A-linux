@@ -16,7 +16,7 @@ class Hook(HookStub):
         self.f = open(filename, "w")
         self.epfilter = epfilter
 
-    def push(self, endpoint, address, data):
+    def push(self, name, endpoint, address, data):
         if not (address, endpoint) in self.epfilter:
             return
 
